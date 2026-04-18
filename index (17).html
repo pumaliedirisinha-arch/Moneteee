@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Earn & Withdraw App</title>
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    
+    <style>
+        body {
+            margin: 0; padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #6a0dad;
+            height: 100vh;
+            display: flex; flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Balance Badge (New) */
+        .balance-badge {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 8px 20px;
+            border-radius: 20px;
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            z-index: 10;
+        }
+
+        /* Screen Sections */
+        .page { display: none; flex: 1; flex-direction: column; align-items: center; overflow-y: auto; padding-bottom: 20px; }
+        .active { display: flex; }
+
+        /* Content Styling */
+        .content {
+            flex: 1; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; gap: 30px;
+            width: 100%;
+        }
+
+        .random-number { font-size: 70px; color: #ffffff; font-weight: bold; letter-spacing: 5px; }
+        .input-box {
+            width: 85%; max-width: 320px; padding: 20px; font-size: 35px;
+            text-align: center; border-radius: 20px; border: none; outline: none; letter-spacing: 15px;
+        }
+        .enter-btn {
+            background-color: #ffd700; color: #000; padding: 15px 70px;
+            border: none; border-radius: 50px; font-size: 24px; font-weight: bold;
+            cursor: pointer; box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        /* Withdrawal Inputs (Reduced size) */
+        .w-input { 
+            width: 70%; max-width: 250px; padding: 10px; 
+            margin-bottom: 8px; border-radius: 10px; border: none; font-size: 14px; 
+        }
+        .withdraw-btn { 
+            background-color: #2ecc71; color: white; padding: 10px 40px; 
+            border: none; border-radius: 50px; font-size: 18px; cursor: pointer; margin-top: 5px; 
+        }
+
+        /* Withdrawal History Card */
+        .history-card {
+            background: white; width: 80%; max-width: 280px; padding: 12px;
+            border-radius: 15px; margin-top: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            font-size: 14px;
+        }
+        .history-card h4 { margin: 0; color: #6a0dad; font-size: 16px; }
+        .status { color: #e67e22; font-weight: bold; }
+
+        /* Popup Styles */
+        .popup-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); display: none; justify-content: center; align-items: center; z-index: 1000;
+        }
+        .popup-box { background: white; padding: 30px; border-radius: 20px; width: 80%; max-width: 300px; text-align: center; }
+        .close-btn { background: #6a0dad; color: white; border: none; padding: 10px 30px; border-radius: 10px; margin-top: 20px; cursor: pointer; }
+
+        /* Bottom Nav */
+        .bottom-nav {
+            background-color: #ffffff; height: 80px; display: flex;
+            justify-content: space-around; align-items: center;
+            border-top-left-radius: 25px; border-top-right-radius: 25px;
+        }
+        .nav-item { cursor: pointer; color: #6a0dad; display: flex; flex-direction: column; align-items: center; font-size: 14px; font-weight: bold; background: none; border: none; }
+        .nav-item i { font-size: 25px; margin-bottom: 5px; }
+    </style>
+</head>
+<body>
+
+    <!-- Balance Badge -->
+    <div class="balance-badge">
+        <i class="fas fa-dollar-sign"></i> <span id="balance">0</span>
+    </div>
+
+    <!-- HOME PAGE -->
+    <div id="home-page" class="page active">
+        <div class="content">
+            <div id="randomDisplay" class="random-number">00000</div>
+            <input type="number" id="pinInput" class="input-box" placeholder="00000" maxlength="5">
+            <button class="enter-btn" onclick="checkNumber()">ENTER</button>
+        </div>
+    </div>
+
+    <!-- TASK PAGE -->
+    <div id="task-page" class="page">
+        <div class="content" style="color:white">
+            <h2>No Tasks Available</h2>
+        </div>
+    </div>
+
+    <!-- WITHDRAWAL PAGE -->
+    <div id="withdraw-page" class="page">
+        <div class="content">
+            <h2 style="color:white; margin-top: 50px;">Withdraw Funds</h2>
+            <input type="number" id="w-amount" class="w-input" placeholder="Amount ($)">
+            <input type="text" id="w-name" class="w-input" placeholder="Account Name">
+            <input type="text" id="w-num" class="w-input" placeholder="Account Number">
+            <input type="text" id="w-bank" class="w-input" placeholder="Bank Name">
+            <input type="text" id="w-branch" class="w-input" placeholder="Branch">
+            <button class="withdraw-btn" onclick="processWithdrawal()">WITHDRAW</button>
+            <div id="history-container" style="width:100%; display:flex; flex-direction:column; align-items:center;"></div>
+        </div>
+    </div>
+
+    <!-- Popup -->
+    <div id="popup" class="popup-overlay">
+        <div class="popup-box">
+            <h2 id="popupTitle">Title</h2>
+            <p id="popupMessage">Message</p>
+            <button class="close-btn" onclick="closePopup()">OK</button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <div class="bottom-nav">
+        <button class="nav-item" onclick="switchPage('home-page')"><i class="fas fa-home"></i><span>HOME</span></button>
+        <button class="nav-item" onclick="switchPage('task-page')"><i class="fas fa-tasks"></i><span>TASK</span></button>
+        <button class="nav-item" onclick="switchPage('withdraw-page')"><i class="fas fa-wallet"></i><span>WITHDRAW</span></button>
+    </div>
+
+    <script>
+        let balance = 0;
+        let currentTarget = Math.floor(10000 + Math.random() * 90000);
+        document.getElementById('randomDisplay').innerText = currentTarget;
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function checkNumber() {
+            let userInput = document.getElementById("pinInput").value;
+            if (userInput == currentTarget) {
+                balance += 1;
+                document.getElementById('balance').innerText = balance;
+                showPopup("Success!", "නිවැරදියි! ඔබ $1 දිනාගත්තා.", true);
+                currentTarget = Math.floor(10000 + Math.random() * 90000);
+                document.getElementById('randomDisplay').innerText = currentTarget;
+                document.getElementById("pinInput").value = "";
+            } else {
+                showPopup("Error!", "වැරදි අංකයක්!", false);
+            }
+        }
+
+        function processWithdrawal() {
+            let amount = parseInt(document.getElementById('w-amount').value);
+            let name = document.getElementById('w-name').value;
+            let num = document.getElementById('w-num').value;
+
+            if (!amount || !name || !num) {
+                showPopup("Error!", "කරුණාකර සියලු විස්තර පුරවන්න.", false);
+                return;
+            }
+
+            if (amount > balance) {
+                showPopup("Error!", "ඔබේ බැලන්ස් එක ප්‍රමාණවත් නැත!", false);
+            } else {
+                balance -= amount;
+                document.getElementById('balance').innerText = balance;
+                
+                let container = document.getElementById('history-container');
+                let card = document.createElement('div');
+                card.className = 'history-card';
+                card.innerHTML = `
+                    <h4>Withdrawal Request</h4>
+                    <p>Amount: $${amount}</p>
+                    <p>Name: ${name}</p>
+                    <p class="status">Status: Processing...</p>
+                `;
+                container.prepend(card);
+                
+                showPopup("Success!", "විත්ඩෝ ඉල්ලීම සාර්ථකව භාරගන්නා ලදී.", true);
+                document.querySelectorAll('.w-input').forEach(i => i.value = "");
+            }
+        }
+
+        function showPopup(title, msg, isSuccess) {
+            document.getElementById("popupTitle").innerText = title;
+            document.getElementById("popupMessage").innerText = msg;
+            document.getElementById("popupTitle").style.color = isSuccess ? "#2ecc71" : "#e74c3c";
+            document.getElementById("popup").style.display = "flex";
+        }
+        function closePopup() {
+            document.getElementById("popup").style.display = "none";
+        }
+    </script>
+</body>
+</html>
